@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Chat en tiempo real</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+</head>
+<body>
+<h2>💬 Chat en tiempo real</h2>
+
+<div>
+    <input type="text" id="username" placeholder="Tu nombre" />
+    <button onclick="connect()">Conectar</button>
+</div>
+
+<div id="chat" style="display:none;">
+    <h3>Conectado como: <span id="userLabel"></span></h3>
+    <div id="messages" style="border:1px solid #aaa; height:200px; overflow:auto; margin-bottom:10px;"></div>
+    <input type="text" id="messageInput" placeholder="Escribe un mensaje..." />
+    <button onclick="sendMessage()">Enviar</button>
+</div>
+
+<script>
+    let stompClient = null;
+    let username = null;
+
+    function connect() {
+        username = document.getElementById("username").value.trim();
+        if (!username) {
+            alert("Por favor ingresa un nombre de usuario");
+            return;
+        }
+
+        const socket = new SockJS("http://localhost:8080/ws"); // tu endpoint websocket
+        stompClient = Stomp.over(socket);
+
+        stompClient.connect({}, (frame) => {
+            console.log("Conectado: " + frame);
+            document.getElementById("chat").style.display = "block";
+            document.getElementById("userLabel").innerText = username;
+
+            // Suscribirse a mensajes
+            stompClient.subscribe("/topic/messages", (msg) => {
+                const message = JSON.parse(msg.body);
+                showMessage(message.sender + ": " + message.content);
+            });
+        });
+    }
+
+    function sendMessage() {
+        const content = document.getElementById("messageInput").value.trim();
+        if (content && stompClient) {
+            const message = { sender: username, content: content };
+            stompClient.send("/app/chat.sendMessage", {}, JSON.stringify(message));
+            document.getElementById("messageInput").value = "";
+        }
+    }
+
+    function showMessage(message) {
+        const messagesDiv = document.getElementById("messages");
+        const p = document.createElement("p");
+        p.textContent = message;
+        messagesDiv.appendChild(p);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+</script>
+</body>
+</html>
