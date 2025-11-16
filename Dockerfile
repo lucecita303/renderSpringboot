@@ -1,5 +1,9 @@
-FROM amazoncorretto:21-alpine-jdk
-COPY target/chat-0.0.1-SNAPSHOT.jar /api-v1.jar
+FROM openjdk:21-ea-1-jdk
+WORKDIR /app
+COPY target/*.jar app.jar
 
+# Exponer puerto
+EXPOSE 8080
 
-ENTRYPOINT ["java", "-jar", "/api-v 1.jar"]
+# Ejecutar con configuración correcta para Render
+ENTRYPOINT ["sh", "-c", "java -Dserver.address=0.0.0.0 -Dserver.port=${PORT:8080} -jar app.jar"]
